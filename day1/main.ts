@@ -1,4 +1,5 @@
-export async function day1() {
+export async function day1(enabled: boolean) {
+  if (!enabled) return;
   let text = await Bun.file('./day1/in').text();
   let inputs = text.split('\n');
 
@@ -33,10 +34,10 @@ function getAllDigits(string: string, countWords = false): string[] {
     }
 
     if (!countWords) continue;
-    for (let i = 0; i < words.length; i++){
+    for (let i = 0; i < words.length; i++) {
       const word = words[i];
       if (currentDigit.includes(word)) {
-        digits.push((i + 1)+'');
+        digits.push((i + 1) + '');
         currentDigit = currentDigit.charAt(currentDigit.length - 1)
       }
     }
