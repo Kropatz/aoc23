@@ -1,15 +1,1 @@
-# aoc23
-
-To install dependencies:
-
-```bash
-bun install
-```
-
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.0.14. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+![Ram_Holding_JavaScript_The_Good_Parts.png](https://raw.githubusercontent.com/cat-milk/Anime-Girls-Holding-Programming-Books/master/Javascript/Ram_Holding_JavaScript_The_Good_Parts.png)
