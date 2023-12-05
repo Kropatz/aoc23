@@ -1,41 +1,48 @@
-
-
 export async function day5(enabled: boolean = false) {
   if (!enabled) return;
   const text = await Bun.file('./day5/in').text();
 
-  let part1 = 999999999999;
-  let part2 = 0;
-
+  let part1 = Number.MAX_SAFE_INTEGER;
+  let part2 = Number.MAX_SAFE_INTEGER
 
   let parsedInput = parseInput(text);
-  let seeds = parsedInput.seeds;
-  const seedToSoilMap = initializeMap();
-  const soilToFertilizerMap = initializeMap();
-  const fertilizerToWaterMap = initializeMap();
-  const waterToLightMap = initializeMap();
-  const lightToTemperatureMap = initializeMap();
-  const temperatureToHumidityMap = initializeMap();
-  const humidityToLocationMap = initializeMap();
 
-  mapRangeMultiple(seedToSoilMap, parsedInput.parsedRanges[0]);
-  mapRangeMultiple(soilToFertilizerMap, parsedInput.parsedRanges[1]);
-  mapRangeMultiple(fertilizerToWaterMap, parsedInput.parsedRanges[2]);
-  mapRangeMultiple(waterToLightMap, parsedInput.parsedRanges[3]);
-  mapRangeMultiple(lightToTemperatureMap, parsedInput.parsedRanges[4]);
-  mapRangeMultiple(temperatureToHumidityMap, parsedInput.parsedRanges[5]);
-  mapRangeMultiple(humidityToLocationMap, parsedInput.parsedRanges[6]);
+  const seedToSoil = parsedInput.parsedRanges[0];
+  const soilToFertilizerMap = parsedInput.parsedRanges[1];
+  const fertilizerToWaterMap = parsedInput.parsedRanges[2];
+  const waterToLightMap = parsedInput.parsedRanges[3];
+  const lightToTemperatureMap = parsedInput.parsedRanges[4];
+  const temperatureToHumidityMap = parsedInput.parsedRanges[5];
+  const humidityToLocationMap = parsedInput.parsedRanges[6];
 
-  for (let seed of seeds) {
-    let soil = seedToSoilMap.get(seed);
-    let fertilizer = soilToFertilizerMap.get(soil);
-    let water = fertilizerToWaterMap.get(fertilizer);
-    let light = waterToLightMap.get(water);
-    let temperature = lightToTemperatureMap.get(light);
-    let humidity = temperatureToHumidityMap.get(temperature);
-    let location = humidityToLocationMap.get(humidity);
+  // part 1
+  for (let seed of parsedInput.seeds) {
+    let soil = Range.applyRanges(seed, seedToSoil);
+    let fertilizer = Range.applyRanges(soil, soilToFertilizerMap);
+    let water = Range.applyRanges(fertilizer, fertilizerToWaterMap);
+    let light = Range.applyRanges(water, waterToLightMap);
+    let temperature = Range.applyRanges(light, lightToTemperatureMap);
+    let humidity = Range.applyRanges(temperature, temperatureToHumidityMap);
+    let location = Range.applyRanges(humidity, humidityToLocationMap);
 
     part1 = Math.min(part1, location);
+  }
+
+  // part 2
+  for (let seedRange of parsedInput.seedsPart2) {
+    console.log('starting range ' + seedRange.start + ' ' + seedRange.len)
+    for (let i = 0; i < seedRange.len; i++) {
+      let seed = seedRange.start + i;
+      let soil = Range.applyRanges(seed, seedToSoil);
+      let fertilizer = Range.applyRanges(soil, soilToFertilizerMap);
+      let water = Range.applyRanges(fertilizer, fertilizerToWaterMap);
+      let light = Range.applyRanges(water, waterToLightMap);
+      let temperature = Range.applyRanges(light, lightToTemperatureMap);
+      let humidity = Range.applyRanges(temperature, temperatureToHumidityMap);
+      let location = Range.applyRanges(humidity, humidityToLocationMap);
+
+      part2 = Math.min(part2, location);
+    }
   }
 
   return {
@@ -48,6 +55,7 @@ export function parseInput(input: string) {
   let firstBreak = input.indexOf('\n\n');
   let seeds = input.substring(0, firstBreak);
   let parsedSeeds = parseSeeds(seeds.replaceAll('seeds: ', ''));
+  let parsedSeedsPart2: SeedRange[] = SeedRange.parse(seeds.replaceAll('seeds: ', ''))
 
   let ranges = input.substring(firstBreak + 2);
   let sections = ranges.split('\n\n');
@@ -55,12 +63,13 @@ export function parseInput(input: string) {
   let mapped = sections.map(section => {
     section = section.replace(/[\sa-zA-Z0-9_-]+:\n/, '').trim()
     return section.split('\n').map(line => {
-      return parseRange(line.trim());
+      return Range.parse(line.trim());
     });
   })
 
   return {
     seeds: parsedSeeds,
+    seedsPart2: parsedSeedsPart2,
     parsedRanges: mapped
   }
 }
@@ -70,35 +79,55 @@ export function parseSeeds(line: string) {
   return numbers.map(n => parseInt(n));
 }
 
-export function parseRange(line: string) {
-  let numbers = line.split(' ');
-  return {
-    dest: parseInt(numbers[0]),
-    src: parseInt(numbers[1]),
-    range: parseInt(numbers[2])
+export class Range {
+  destination: number;
+  sourceStart: number;
+  length: number;
+
+  constructor(destination: number, sourceStart: number, length: number) {
+    this.destination = destination;
+    this.sourceStart = sourceStart;
+    this.length = length;
+  }
+
+  isInRange(number: number): boolean {
+    return number >= this.sourceStart && number < this.sourceStart + this.length;
+  }
+
+  convert(fromSource: number): number {
+    return this.destination + fromSource - this.sourceStart;
+  }
+
+  static parse(line: string) {
+    let numbers = line.split(' ');
+    return new Range(parseInt(numbers[0]), parseInt(numbers[1]), parseInt(numbers[2]));
+  }
+
+  static applyRanges(number: number, ranges: Range[]) {
+    for (let range of ranges) {
+      if (range.isInRange(number)) {
+        return range.convert(number);
+      }
+    }
+    return number;
   }
 }
 
-export function initializeMap(): Map<number, number> {
-  const initialized = new Map<number, number>();
-  for (let i = 0; i <= 100; i++) {
-    initialized.set(i, i);
-  }
-  return initialized;
-}
+export class SeedRange {
+  start: number
+  len: number
 
-export function mapRange(map: Map<number, number>, dest: number, src: number, range: number) {
-  for (let i = 0; i < range; i++) {
-    map.set(src + i, dest + i);
+  constructor(start: number, length: number) {
+    this.start = start;
+    this.len = length;
   }
-}
 
-export function mapRangeMultiple(map: Map<number, number>, ranges: {
-  dest: number,
-  src: number,
-  range: number
-}[]) {
-  ranges.forEach(range => {
-    mapRange(map, range.dest, range.src, range.range);
-  });
+  static parse(line: string): SeedRange[] {
+    let split = line.split(' ');
+    let ranges = []
+    for (let i = 0; i < split.length; i += 2) {
+      ranges.push(new SeedRange(parseInt(split[i]), parseInt(split[i + 1])));
+    }
+    return ranges;
+  }
 }
